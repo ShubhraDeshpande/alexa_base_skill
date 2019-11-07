@@ -6,8 +6,11 @@
 # This sample is built using the handler classes approach in skill builder.
 import logging
 import ask_sdk_core.utils as ask_utils
+import os
+from ask_sdk_s3.adapter import S3Adapter
+s3_adapter = S3Adapter(bucket_name=os.environ["S3_PERSISTENCE_BUCKET"])
 
-from ask_sdk_core.skill_builder import SkillBuilder
+from ask_sdk_core.skill_builder import CustomSkillBuilder
 from ask_sdk_core.dispatch_components import AbstractRequestHandler
 from ask_sdk_core.dispatch_components import AbstractExceptionHandler
 from ask_sdk_core.handler_input import HandlerInput
@@ -27,16 +30,39 @@ class LaunchRequestHandler(AbstractRequestHandler):
 
     def handle(self, handler_input):
         # type: (HandlerInput) -> Response
-        speak_output = "Welcome to the demo center, who would you like to check in?"
-        reprompt = "Bill is checked in, what is the name of the next child to be checked in?"
+        speak_output = "Welcome to Demo center, who would you like to check in?"
+        reprompt_text = "please let me know the name of the child!"
 
         return (
             handler_input.response_builder
                 .speak(speak_output)
-                .ask(reprompt)
+                .ask(reprompt_text)
                 .response
         )
 
+class HasBirthdayLaunchRequestHandler(AbstractRequestHandler):
+    """Handler for launch after they have set their birthday"""
+
+    def can_handle(self, handler_input):
+        # extract persistent attributes and check if they are all present
+        attr = handler_input.attributes_manager.persistent_attributes
+        attributes_are_present = ("fname" in attr and "lname" in attr )
+
+        return attributes_are_present and ask_utils.is_request_type("LaunchRequest")(handler_input)
+
+    def handle(self, handler_input):
+        attr = handler_input.attributes_manager.persistent_attributes
+        fname = attr['fname']
+        lname = attr['lname'] # month is a string, and we need to convert it to a month index later
+        
+
+        # TODO:: Use the settings API to get current date and then compute how many days until user's bday
+        # TODO:: Say happy birthday on the user's birthday
+
+        speak_output = "Welcome back! we have already checked {fname} in.".format(fname=fname)
+        handler_input.response_builder.speak(speak_output)
+
+        return handler_input.response_builder.response
 
 class CaptureChildNameIntentHandler(AbstractRequestHandler):
     """Handler for Hello World Intent."""
@@ -49,16 +75,24 @@ class CaptureChildNameIntentHandler(AbstractRequestHandler):
         slots = handler_input.request_envelope.request.intent.slots
         fname = slots["fname"].value
         lname = slots["lname"].value
-        
-        speak_output = 'Thanks, I will get {fname} checked in.'.format(fname=fname)
+        attributes_manager = handler_input.attributes_manager
+
+        birthday_attributes = {
+            "fname": fname,
+            "lname": lname
+        }
+
+        attributes_manager.persistent_attributes = birthday_attributes
+        attributes_manager.save_persistent_attributes()
+
+        speak_output = 'Thanks I will get {fname} {lname} checked in.'.format(fname=fname, lname=lname)
 
         return (
             handler_input.response_builder
                 .speak(speak_output)
-                # .ask(speak_output)
+                # .ask("add a reprompt if you want to keep the session open for the user to respond")
                 .response
         )
-
 
 
 class HelpIntentHandler(AbstractRequestHandler):
@@ -161,8 +195,9 @@ class CatchAllExceptionHandler(AbstractExceptionHandler):
 # defined are included below. The order matters - they're processed top to bottom.
 
 
-sb = SkillBuilder()
+sb = CustomSkillBuilder(persistence_adapter=s3_adapter)
 
+sb.add_request_handler(HasBirthdayLaunchRequestHandler())
 sb.add_request_handler(LaunchRequestHandler())
 sb.add_request_handler(CaptureChildNameIntentHandler())
 sb.add_request_handler(HelpIntentHandler())
