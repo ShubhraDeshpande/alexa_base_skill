@@ -1,0 +1,148 @@
+{
+    "interactionModel": {
+        "languageModel": {
+            "invocationName": "update register",
+            "intents": [
+                {
+                    "name": "AMAZON.CancelIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.HelpIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.StopIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.NavigateHomeIntent",
+                    "samples": []
+                },
+                {
+                    "name": "CaptureChildName",
+                    "slots": [
+                        {
+                            "name": "fname",
+                            "type": "AMAZON.FirstName"
+                        },
+                        {
+                            "name": "lname",
+                            "type": "AMAZON.FirstName"
+                        }
+                    ],
+                    "samples": [
+                        "child is {fname} {lname}",
+                        "name is {lname} {fname}",
+                        "{fname}",
+                        "{fname} {lname}",
+                        "The name is {fname}"
+                    ]
+                },
+                {
+                    "name": "AddMoreChildren",
+                    "slots": [
+                        {
+                            "name": "affirm",
+                            "type": "yesNoType"
+                        }
+                    ],
+                    "samples": [
+                        "{affirm}"
+                    ]
+                }
+            ],
+            "types": [
+                {
+                    "name": "yesNoType",
+                    "values": [
+                        {
+                            "name": {
+                                "value": "yes",
+                                "synonyms": [
+                                    "yep",
+                                    "yeah",
+                                    "I do",
+                                    "yes please",
+                                    "you know it"
+                                ]
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "no",
+                                "synonyms": [
+                                    "nope",
+                                    "I do not",
+                                    "no thank you"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        "dialog": {
+            "intents": [
+                {
+                    "name": "CaptureChildName",
+                    "confirmationRequired": false,
+                    "prompts": {},
+                    "slots": [
+                        {
+                            "name": "fname",
+                            "type": "AMAZON.FirstName",
+                            "confirmationRequired": false,
+                            "elicitationRequired": true,
+                            "prompts": {
+                                "elicitation": "Elicit.Slot.1368844400692.1125114105603"
+                            }
+                        },
+                        {
+                            "name": "lname",
+                            "type": "AMAZON.FirstName",
+                            "confirmationRequired": false,
+                            "elicitationRequired": true,
+                            "prompts": {
+                                "elicitation": "Elicit.Slot.1368844400692.1288640305987"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "AddMoreChildren",
+                    "confirmationRequired": false,
+                    "prompts": {},
+                    "slots": [
+                        {
+                            "name": "affirm",
+                            "type": "yesNoType",
+                            "confirmationRequired": false,
+                            "elicitationRequired": false,
+                            "prompts": {}
+                        }
+                    ]
+                }
+            ],
+            "delegationStrategy": "ALWAYS"
+        },
+        "prompts": [
+            {
+                "id": "Elicit.Slot.1368844400692.1125114105603",
+                "variations": [
+                    {
+                        "type": "PlainText",
+                        "value": "what is the first name of the child?"
+                    }
+                ]
+            },
+            {
+                "id": "Elicit.Slot.1368844400692.1288640305987",
+                "variations": [
+                    {
+                        "type": "PlainText",
+                        "value": "what is the last name of the child"
+                    }
+                ]
+            }
+        ]
