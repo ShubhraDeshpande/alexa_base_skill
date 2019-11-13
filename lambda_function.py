@@ -4,6 +4,11 @@
 # Please visit https://alexa.design/cookbook for additional examples on implementing slots, dialog management,
 # session persistence, api calls, and more.
 # This sample is built using the handler classes approach in skill builder.
+
+checkedInNames=list()
+
+
+
 import logging
 import ask_sdk_core.utils as ask_utils
 import os
@@ -30,8 +35,8 @@ class LaunchRequestHandler(AbstractRequestHandler):
 
     def handle(self, handler_input):
         # type: (HandlerInput) -> Response
-        speak_output = "Welcome to Demo center, who would you like to check in?"
-        reprompt_text = "please let me know the name of the child!"
+        speak_output = "Hello! Welcome  to demo center, who would you like to check in?"
+        reprompt_text = "what is the name of the child?"
 
         return (
             handler_input.response_builder
@@ -40,13 +45,12 @@ class LaunchRequestHandler(AbstractRequestHandler):
                 .response
         )
 
-class HasBirthdayLaunchRequestHandler(AbstractRequestHandler):
+class HasChildLaunchRequestHandler(AbstractRequestHandler):
     """Handler for launch after they have set their birthday"""
 
     def can_handle(self, handler_input):
-        # extract persistent attributes and check if they are all present
         attr = handler_input.attributes_manager.persistent_attributes
-        attributes_are_present = ("fname" in attr and "lname" in attr )
+        attributes_are_present = len(attr['checkedInNames']) > 0
 
         return attributes_are_present and ask_utils.is_request_type("LaunchRequest")(handler_input)
 
@@ -54,15 +58,17 @@ class HasBirthdayLaunchRequestHandler(AbstractRequestHandler):
         attr = handler_input.attributes_manager.persistent_attributes
         fname = attr['fname']
         lname = attr['lname'] # month is a string, and we need to convert it to a month index later
-        
+        checkedInNames = attr['checkedInNames']
+        speak_output = "Welcome back we have {lenn} do you want to add more children?".format(str(len(checkedInNames)))
+        reprompt_text = "please say yes, no or the child's name "
 
-        # TODO:: Use the settings API to get current date and then compute how many days until user's bday
-        # TODO:: Say happy birthday on the user's birthday
+        return (
+            handler_input.response_builder
+                .speak(speak_output)
+                .ask(reprompt_text)
+                .response
+        )
 
-        speak_output = "Welcome back! we have already checked {fname} in.".format(fname=fname)
-        handler_input.response_builder.speak(speak_output)
-
-        return handler_input.response_builder.response
 
 class CaptureChildNameIntentHandler(AbstractRequestHandler):
     """Handler for Hello World Intent."""
@@ -75,18 +81,18 @@ class CaptureChildNameIntentHandler(AbstractRequestHandler):
         slots = handler_input.request_envelope.request.intent.slots
         fname = slots["fname"].value
         lname = slots["lname"].value
+        checkedInNames.append(fname)
         attributes_manager = handler_input.attributes_manager
 
-        birthday_attributes = {
+        child_attributes = {
             "fname": fname,
-            "lname": lname
+            "lname": lname,
+            "checkedInNames" : checkedInNames
         }
 
-        attributes_manager.persistent_attributes = birthday_attributes
+        attributes_manager.persistent_attributes = child_attributes
         attributes_manager.save_persistent_attributes()
-
-        speak_output = 'Thanks I will get {fname} {lname} checked in.'.format(fname=fname, lname=lname)
-
+        speak_output = 'Thanks I will get {fname} {lname} checked in. by the way, now we have {cname} children in the room'.format(fname=fname, lname=lname, cname = len(checkedInNames))
         return (
             handler_input.response_builder
                 .speak(speak_output)
@@ -94,7 +100,30 @@ class CaptureChildNameIntentHandler(AbstractRequestHandler):
                 .response
         )
 
+class AddMoreChildrenIntentHanlder(AbstractRequestHandler):
+    """Handles AddMoreChildren Intent"""
+    def can_handle(self, handler_input):
+        # type: (HandlerInput) -> bool
+        return ask_utils.is_intent_name("AddMoreChildren")(handler_input)
 
+    def handle(self, handler_input):
+        # type: (HandlerInput) -> Response
+        slots = handler_input.request_envelope.request.intent.slots
+        affirm = slots["affirm"].value
+        if (affirm.lower() == "yes"):
+            speak_output = 'cool! what is the name of the child?'
+            
+        elif(affirm.lower() == "no"):
+            speak_output = "awesome then see you soon!"
+            
+            
+        
+        return (
+            handler_input.response_builder
+                .speak(speak_output)
+                # .ask("add a reprompt if you want to keep the session open for the user to respond")
+                .response
+        )
 class HelpIntentHandler(AbstractRequestHandler):
     """Handler for Help Intent."""
     def can_handle(self, handler_input):
@@ -197,7 +226,8 @@ class CatchAllExceptionHandler(AbstractExceptionHandler):
 
 sb = CustomSkillBuilder(persistence_adapter=s3_adapter)
 
-sb.add_request_handler(HasBirthdayLaunchRequestHandler())
+sb.add_request_handler(HasChildLaunchRequestHandler())
+sb.add_request_handler(AddMoreChildrenIntentHanlder())
 sb.add_request_handler(LaunchRequestHandler())
 sb.add_request_handler(CaptureChildNameIntentHandler())
 sb.add_request_handler(HelpIntentHandler())
